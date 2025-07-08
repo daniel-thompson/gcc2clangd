@@ -12,6 +12,9 @@ struct BuildCommand {
 
 impl BuildCommand {
     fn set_target(&mut self, target: &str) {
+        // Some builds of clangd default to x86-64 rather than to the host
+        // architecture. For that reason we still need to introduce a --target
+        // argument when running on not-x86-64 architectures.
         if self.command.starts_with("gcc ") {
             self.command
                 .replace_range(..4, &format!("clang --target={target} "));
@@ -65,6 +68,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut comp_db: Vec<BuildCommand> = serde_json::from_reader(reader)?;
 
         for bc in comp_db.iter_mut() {
+            // TODO: I have an arm64 laptop so this "works for me" but will
+            //       cause problems when *not* cross-compiling on x86-64
+            //       systems (it should be find for cross-compiled kernel builds
+            //       though).
             bc.set_target("aarch64-linux-gnu");
             bc.hide_unknown_arguments();
             bc.censor_mabi_lp64();
